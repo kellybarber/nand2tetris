@@ -42,35 +42,24 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-    /* Helpers */
+    Mux16(a=x, b=false, sel=zx, out=x1); // Zero the X input
+    Not16(in=x1, out=notX); // Negate the X input
+    Mux16(a=x1, b=notX, sel=nx, out=x2); // Select zero or negated
 
-    Not16(in=false, out=zeros); // 16 bit zeros
+    Mux16(a=y, b=false, sel=zy, out=y1); // Zero the Y input
+    Not16(in=y1, out=notY); // Negate the Y input 
+    Mux16(a=y1, b=notY, sel=ny, out=y2); // Select zero or negated
 
+    Add16(a=x2, b=y2, out=addxy); // Add X + Y
+    And16(a=x2, b=y2, out=andxy); // And X & Y
+    Mux16(a=andxy, b=addxy, sel=f, out=posxy); // Select & or +
 
-    /* X Operations */
+    Not16(in=posxy, out=negxy); // Negate the output
+    Mux16(a=posxy, b=negxy, sel=no, out=out, out[0..7]=outlow, out[8..15]=outhigh, out[15]=ng);
 
-    Mux16(a=x, b=zeros, sel=zx, out=outZeroX); // Zero the X input
+    Or8Way(in=outlow, out=lowor);
+    Or8Way(in=outhigh,  out=hior);
+    Or(a=lowor, b=hior, out=nzr);
 
-    Not16(in=outZeroX, out=notX); // Not X
-    Mux16(a=outZeroX, b=notX, sel=nx, out=outNotX); // Negate the X input
-
-
-    /* Y Operations */
-
-    Mux16(a=y, b=zeros, sel=zy, out=outZeroY); // Zero the Y input
-
-    Not16(in=outZeroY, out=notY); // Not Y
-    Mux16(a=outZeroY, b=notY, sel=ny, out=outNotY); // Negate the Y input
-
-
-    /* Combined Operations */
-
-    Add16(a=outNotX, b=outNotY, out=addOut); // Add X and Y
-    And16(a=outNotX, b=outNotY, out=andOut); // And X and Y
-
-
-    /* Output Operations */
-
-    Mux16(a=addOut, b=andOut, sel=f, out=out); // Compute the 16 bit output
-
+    Not(in=nzr, out=zr);
 }
